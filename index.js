@@ -33,16 +33,60 @@ async function run() {
   //contest collection methods 
 
   app.get('/contest/get-all', async (req, res) => {
-    const cursor = ContestCollection.find();
-    const user = await cursor.toArray();
-    res.send(user);
+    try {const cursor = ContestCollection.find();
+      const user = await cursor.toArray();
+      res.send(user);} 
+    catch (error) {
+      console.error("Error fetching all contests:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
-
+  
   app.get('/contest/get-id/:id', async (req, res) => {
     const id = req.params.id;
     const filter = { _id: new ObjectId(id) };
-    try {const result = await ContestCollection.findOne(filter);
-      res.send(result);} catch (err) {res.status(500).send({ error: err.message });}
+    try {
+      const result = await ContestCollection.findOne(filter);
+      res.send(result);
+    } catch (error) {
+      console.error("Error fetching contest by ID:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.get('/contest/get-email/:name', async (req, res) => {
+    const request = req.params.name;
+    try {
+      const cursor = ContestCollection.find({ creator_email: request });
+      const user = await cursor.toArray();
+      res.send(user);
+    } catch (error) {
+      console.error("Error fetching contest by creator email:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  app.get('/contest/get-search/:search', async (req, res) => {
+    const searchQuery = req.params.search;
+    try {
+      const cursor = ContestCollection.find({ contest_name: { $regex: searchQuery, $options: 'i' } });
+      const contests = await cursor.toArray();
+      res.json(contests);
+    } catch (error) {
+      console.error("Error searching contests:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get('/contest/get-status/:status', async (req, res) => {
+    const status = req.params.status;
+    try {
+      const cursor = ContestCollection.find({ status: status });
+      const contests = await cursor.toArray();
+      res.json(contests);
+    } catch (error) {
+      console.error("Error fetching contests by status:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   //user collection methods 
