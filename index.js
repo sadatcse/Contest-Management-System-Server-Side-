@@ -92,9 +92,9 @@ async function run() {
   //contest collection post method 
 
   app.post('/contest/post', async (req, res) => {
-    const assignment = req.body;
-    console.log(assignment);
-    const result = await ContestCollection.insertOne(assignment);
+    const contest = req.body;
+    console.log(contest);
+    const result = await ContestCollection.insertOne(contest);
     res.send(result);
   });
 
@@ -146,6 +146,13 @@ async function run() {
     const filter = { _id: new ObjectId(id) };
     try {const result = await userCollection.findOne(filter);
       res.send(result);} catch (err) {res.status(500).send({ error: err.message });}
+  });
+
+  app.post('/user/post', async (req, res) => {
+    const newuser = req.body;
+    console.log(newuser);
+    const result = await userCollection.insertOne(newuser);
+    res.send(result);
   });
 
 //userrole collection methods 
