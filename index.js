@@ -89,6 +89,51 @@ async function run() {
     }
   });
 
+  //contest collection post method 
+
+  app.post('/contest/post', async (req, res) => {
+    const assignment = req.body;
+    console.log(assignment);
+    const result = await ContestCollection.insertOne(assignment);
+    res.send(result);
+  });
+
+  //contest collection put method 
+
+  
+  app.put('/contest/put-id/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id) };
+    const updatedData = req.body;
+    delete updatedData._id;
+    try {
+      const result = await ContestCollection.updateOne(filter, { $set: updatedData });
+      res.json({ success: true, message: 'contest updated successfully' });
+    } catch (error) {
+      console.error('Error updating Assignment:', error);
+      res.status(500).json({ success: false, message: 'Failed to update contest' });
+    }
+  
+  });
+
+  //contest collection delete method 
+  
+  app.delete('/contest/delete/:id', async (req, res) => {
+    const id = req.params.id;
+    try {
+        const filter = { _id: new ObjectId(id) };
+        const result = await ContestCollection.deleteOne(filter);
+        if (result.deletedCount === 1) {
+            res.status(200).json({ message: 'contest deleted successfully' });
+        } else {
+            res.status(404).json({ message: 'contest not found' });
+        }
+    } catch (error) {
+        console.error('Error deleting contest:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
   //user collection methods 
   app.get('/user/get-all', async (req, res) => {
     const cursor = userCollection.find();
