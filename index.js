@@ -11,9 +11,6 @@ app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_URL}/?retryWrites=true&w=majority&appName=Cluster0`;
 
-console.log(uri);
-
-
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
@@ -33,9 +30,60 @@ async function run() {
   const PaymentCollection = client.db('Contest').collection('Payment');
 
 
+  //contest collection methods 
 
+  app.get('/contest/get-all', async (req, res) => {
+    const cursor = ContestCollection.find();
+    const user = await cursor.toArray();
+    res.send(user);
+  });
 
-        
+  app.get('/contest/get-id/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id) };
+    try {const result = await ContestCollection.findOne(filter);
+      res.send(result);} catch (err) {res.status(500).send({ error: err.message });}
+  });
+
+  //user collection methods 
+  app.get('/user/get-all', async (req, res) => {
+    const cursor = userCollection.find();
+    const user = await cursor.toArray();
+    res.send(user);
+  });
+
+  app.get('/user/get-id/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id) };
+    try {const result = await userCollection.findOne(filter);
+      res.send(result);} catch (err) {res.status(500).send({ error: err.message });}
+  });
+
+//userrole collection methods 
+app.get('/userole/get-all', async (req, res) => {
+    const cursor = UsersRollCollection.find();
+    const user = await cursor.toArray();
+    res.send(user);
+  });
+  app.get('/userole/get-id/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id) };
+    try {const result = await UsersRollCollection.findOne(filter);
+      res.send(result);} catch (err) {res.status(500).send({ error: err.message });}
+  });
+//payment  collection methods 
+app.get('/payment/get-all', async (req, res) => {
+    const cursor = PaymentCollection.find();
+    const user = await cursor.toArray();
+    res.send(user);
+  });  
+
+  app.get('/payment/get-id/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id) };
+    try {const result = await PaymentCollection.findOne(filter);
+      res.send(result);} catch (err) {res.status(500).send({ error: err.message });}
+  });
 
 // Send a ping to confirm a successful connection
  await client.db("admin").command({ ping: 1 });
