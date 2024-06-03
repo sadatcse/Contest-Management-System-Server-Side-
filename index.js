@@ -32,6 +32,44 @@ async function run() {
 
   //contest collection methods 
 
+
+  app.put('/contest/update-comment/:id', async (req, res) => {
+    const id = req.params.id;
+    const updateData = req.body;
+    console.log('Received request to update comment with id:', id);
+    console.log('Update data:', updateData);
+    
+   
+    const filter = { _id: new ObjectId(id) };
+    try {
+        const result = await ContestCollection.updateOne(filter, { $set: updateData });
+        if (result.modifiedCount === 1) {
+            res.status(200).json({ success: true, message: 'Contest confirmed successfully' });
+        } else {
+            res.status(404).json({ success: false, message: 'Contest not found' });
+        }
+    } catch (error) {
+        console.error('Error confirming contest:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+  app.put('/contest/put-id/:id', async (req, res) => {
+    const id = req.params.id;
+    console.log(id);
+    const filter = { _id: new ObjectId(id) };
+    const updatedData = req.body;
+    delete updatedData._id;
+    try {
+      const result = await ContestCollection.updateOne(filter, { $set: updatedData });
+      res.json({ success: true, message: 'contest updated successfully' });
+    } catch (error) {
+      console.error('Error updating contest:', error);
+      res.status(500).json({ success: false, message: 'Failed to update contest' });
+    }
+  
+  });
+
   app.get('/contest/get-all', async (req, res) => {
     try {const cursor = ContestCollection.find();
       const user = await cursor.toArray();
@@ -41,6 +79,19 @@ async function run() {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+
+  app.get('/statistics/admin', async (req, res) => {
+    try {
+        const userCount = await userCollection.countDocuments();
+        const contestCount = await ContestCollection.countDocuments();
+        const appliedCount = await UsersRollCollection.countDocuments();
+
+        res.status(200).json({ userCount, contestCount, appliedCount });
+    } catch (error) {
+        console.error('Error fetching statistics:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
   
   app.get('/contest/get-id/:id', async (req, res) => {
     const id = req.params.id;
@@ -99,22 +150,26 @@ async function run() {
   });
 
   //contest collection put method 
-
-  
-  app.put('/contest/put-id/:id', async (req, res) => {
+  app.put('/contest/confirm/:id', async (req, res) => {
     const id = req.params.id;
     const filter = { _id: new ObjectId(id) };
-    const updatedData = req.body;
-    delete updatedData._id;
+    const updateData = { status: 'confirmed' };
+
     try {
-      const result = await ContestCollection.updateOne(filter, { $set: updatedData });
-      res.json({ success: true, message: 'contest updated successfully' });
+        const result = await ContestCollection.updateOne(filter, { $set: updateData });
+        if (result.modifiedCount === 1) {
+            res.status(200).json({ success: true, message: 'Contest confirmed successfully' });
+        } else {
+            res.status(404).json({ success: false, message: 'Contest not found' });
+        }
     } catch (error) {
-      console.error('Error updating Assignment:', error);
-      res.status(500).json({ success: false, message: 'Failed to update contest' });
+        console.error('Error confirming contest:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
+});
+
   
-  });
+
 
   //contest collection delete method 
   
@@ -141,6 +196,49 @@ async function run() {
     res.send(user);
   });
 
+  app.get('/user/get-email/:email', async (req, res) => {
+    const email = req.params.email; // change to email
+    try {
+      const cursor = userCollection.find({ email: email }); // change to email
+      const user = await cursor.toArray();
+      res.send(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch('/user/patch/:id', async (req, res) => {
+    try {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedUser = { ...req.body };
+      delete updatedUser._id;
+      console.log('Filter:', filter); 
+      console.log('Updated User:', updatedUser);
+  
+      if (Object.keys(updatedUser).length === 0) {
+        return res.status(400).json({ error: 'No fields to update provided' });
+      }
+      const result = await userCollection.updateOne(filter, { $set: updatedUser });
+  
+      console.log('Update Result:', result); 
+  
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+  
+      if (result.modifiedCount === 1) {
+        return res.json({ message: 'User updated successfully' });
+      } else {
+        return res.status(500).json({ error: 'Failed to update user' });
+      }
+    } catch (error) {
+      console.error('Server Error:', error); 
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   app.get('/user/get-id/:id', async (req, res) => {
     const id = req.params.id;
     const filter = { _id: new ObjectId(id) };
@@ -149,11 +247,45 @@ async function run() {
   });
 
   app.post('/user/post', async (req, res) => {
-    const newuser = req.body;
-    console.log(newuser);
-    const result = await userCollection.insertOne(newuser);
-    res.send(result);
+    const newUser = req.body;
+    const existingUser = await userCollection.findOne({ email: newUser.email });
+    if (existingUser) {
+      return res.status(400).json({ error: "User already exists" });
+    }
+  
+    try {
+        const result = await userCollection.insertOne(newUser);
+        res.send(result);
+    } catch (error) {
+      console.error("Error inserting new user:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
+  app.patch('/user/patch/:role/:id', async (req, res) => {
+    try {
+      const id = req.params.id;
+      const role = req.params.role;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: role
+        }
+      };
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    } catch (err) {
+      res.status(500).send(err.message);
+    }
+  });
+
+  app.delete('/user/delete/:id', async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) }
+    const result = await userCollection.deleteOne(query);
+    res.send(result);
+  })
+
+
 
 //userrole collection methods 
 app.get('/userole/get-all', async (req, res) => {
