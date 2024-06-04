@@ -172,15 +172,15 @@ async function run() {
     const status = req.params.status;
     try {
       const cursor = ContestCollection.find({ status: status });
-      const contests = await cursor.toArray();
-      res.json(contests);
+      const contest = await cursor.toArray();
+      res.json(contest);
     } catch (error) {
       console.error("Error fetching contests by status:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  //contest collection post method 
+
 
   app.post('/contest/post', async (req, res) => {
     const contest = req.body;
