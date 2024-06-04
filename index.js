@@ -42,21 +42,9 @@ async function run() {
 
   //contest collection methods 
 
-  app.get('/payments/:email', async (req, res) => {
-    const query = { email: req.params.email }
-    if (req.params.email !== req.decoded.email) {
-      return res.status(403).send({ message: 'forbidden access' });
-    }
-    const result = await PaymentCollection.find(query).toArray();
-    res.send(result);
-  })
 
-  app.post('/payments', async (req, res) => {
-    const contest = req.body;
-    console.log(contest);
-    const result = await PaymentCollection.insertOne(contest);
-    res.send(result);
-  });
+
+ 
 
     app.get('/contest/get-id/:id', async (req, res) => {
       const id = req.params.id;
