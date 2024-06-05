@@ -117,6 +117,57 @@ async function run() {
   
   });
 
+  app.get('/contest/count-by-creator', async (req, res) => {
+    try {
+        // Aggregate contest counts by creator email and contest name
+        const pipeline = [
+            {
+                $group: {
+                    _id: {
+                        creator_email: "$creator_email",
+                        contest_name: "$contest_name"
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $group: {
+                    _id: "$_id.creator_email",
+                    contestCounts: {
+                        $push: {
+                            contest_name: "$_id.contest_name",
+                            count: "$count"
+                        }
+                    },
+                    totalContest: { $sum: "$count" }
+                }
+            }
+        ];
+        const contestCounts = await ContestCollection.aggregate(pipeline).toArray();
+
+        // Fetch user details for each creator email
+        const creatorEmails = contestCounts.map(entry => entry._id);
+        const cursor = userCollection.find({ email: { $in: creatorEmails } });
+        const users = await cursor.toArray();
+
+        // Attach user details to contest counts
+        const result = contestCounts.map(entry => {
+            const user = users.find(user => user.email === entry._id);
+            return {
+                creator_email: entry._id,
+                contestCounts: entry.contestCounts,
+                totalContest: entry.totalContest,
+                user_details: user
+            };
+        });
+
+        res.json(result);
+    } catch (error) {
+        console.error("Error counting contests by creator:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
   app.get('/contest/get-all', async (req, res) => {
     try {const cursor = ContestCollection.find();
       const user = await cursor.toArray();
@@ -344,6 +395,26 @@ app.get('/userole/get-all', async (req, res) => {
     res.send(filteredContests);
 });
 
+app.put('/userole/status/:id', async (req, res) => {
+  const { id } = req.params;
+  const { status  } = req.body;
+
+  try {
+      const result = await UsersRollCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status } }
+      );
+
+      if (result.modifiedCount > 0) {
+          res.status(200).send({ message: 'Course link updated successfully' });
+      } else {
+          res.status(404).send({ message: 'Course link not found' });
+      }
+  } catch (error) {
+      res.status(500).send({ message: 'Error updating Course link', error });
+  }
+});
+
 app.put('/userole/take/:id', async (req, res) => {
   const { id } = req.params;
   const { inputlink } = req.body;
@@ -362,6 +433,13 @@ app.put('/userole/take/:id', async (req, res) => {
   } catch (error) {
       res.status(500).send({ message: 'Error updating Course link', error });
   }
+});
+
+app.get('/userole/get-cid/:id', async (req, res) => {
+  const id = req.params.id;
+  const filter = { contestd: id };
+  try {const result = await UsersRollCollection.find(filter).toArray();;
+    res.send(result);} catch (err) {res.status(500).send({ error: err.message });}
 });
 
   app.get('/userole/get-email/:email', async (req, res) => {
@@ -414,7 +492,7 @@ app.get('/userole/stat/:email', async (req, res) => {
   app.post('/userole/post', async (req, res) => {
     const contest = req.body;
     console.log(contest);
-    const existingData = await UsersRollCollection.findOne({ contestd: contest.contestd });
+    const existingData = await UsersRollCollection.findOne({ contestd: contest.contestd, submitter_email: contest.submitter_email });
     if (existingData) {
 
       return res.status(400).send({ error: 'Data with this contestd already exists' });
